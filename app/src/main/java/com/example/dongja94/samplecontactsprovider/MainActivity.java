@@ -4,6 +4,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -15,7 +18,7 @@ import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.ListView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
 
     ListView listView;
     EditText keywordView;
@@ -44,7 +47,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String keyword = s.toString();
-                getContacts(keyword);
+//                getContacts(keyword);
+                Bundle args = new Bundle();
+                args.putString("keyword", keyword);
+                getSupportLoaderManager().restartLoader(0, args, MainActivity.this);
             }
 
             @Override
@@ -56,12 +62,36 @@ public class MainActivity extends AppCompatActivity {
         int[] to = {android.R.id.text1};
         mAdapter = new SimpleCursorAdapter(this, android.R.layout.simple_list_item_1, null, from, to, 0);
         listView.setAdapter(mAdapter);
+
+        getSupportLoaderManager().initLoader(0, null, this);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Uri uri = ContactsContract.Contacts.CONTENT_URI;
+        if (args != null) {
+            String keyword = args.getString("keyword");
+            if (!TextUtils.isEmpty(keyword)) {
+                uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_FILTER_URI, Uri.encode(keyword));
+            }
+        }
+        return new CursorLoader(this, uri, projection, selection, null, sortOrder);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mAdapter.swapCursor(null);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        getContacts(null);
+//        getContacts(null);
     }
 
     private void getContacts(String keyword) {
@@ -76,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mAdapter.changeCursor(null);
+//        mAdapter.changeCursor(null);
     }
 
     @Override
